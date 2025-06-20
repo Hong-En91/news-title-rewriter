@@ -1,35 +1,45 @@
-console.log('Content script loaded'); // 確認腳本載入
+// File: content.js
+// Description: This script runs in the context of web pages to handle user right-click events,
+//              extract news link data, communicate with the background script, and display
+//              a popup for rewritten titles and summaries via n8n Webhook.
+// Date: 2025-06-20
+// Note: Replace WEBHOOK_URL with your actual n8n Webhook URL before use.
 
-let rewritePending = false; // 防止重複觸發
-let mouseX = 0; // 本地儲存滑鼠 X 座標
-let mouseY = 0; // 本地儲存滑鼠 Y 座標
+console.log('Content script loaded'); // Log confirmation of script initialization
 
-// 監聽右鍵事件以獲取滑鼠座標
+let rewritePending = false; // Flag to prevent multiple simultaneous rewrite requests
+let mouseX = 0; // Store the X coordinate of the mouse for popup positioning
+let mouseY = 0; // Store the Y coordinate of the mouse for popup positioning
+
+// Listen for contextmenu event to capture mouse coordinates
 document.addEventListener('contextmenu', (event) => {
-  // 更新滑鼠座標
+  // Update mouse position based on the event
   mouseX = event.clientX;
   mouseY = event.clientY;
-  console.log('Mouse position updated:', mouseX, mouseY);
+  console.log('Mouse position updated:', mouseX, mouseY); // Debug log for position
 });
 
-// 監聽背景腳本訊息
+// Listen for messages from the background script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log('Received message:', request); // 調試訊息
+  console.log('Received message:', request); // Debug log for incoming message
   if (request.action === 'rewriteUrl') {
+    if (rewritePending) return; // Exit if a rewrite is already in progress
     rewritePending = true;
-    const url = request.url; // 直接從背景腳本獲取 URL
-    const x = mouseX; // 使用本地儲存的座標
-    const y = mouseY;
+    const url = request.url; // URL received from the background script
+    const x = mouseX; // Use stored X coordinate for popup
+    const y = mouseY; // Use stored Y coordinate for popup
 
-    // 顯示載入中
+    // Display loading message in popup
     showPopup('正在改寫標題...', 'loading', x, y);
 
-    // 抓取原始標題
+    // Find the target link and extract original title
     const targetLink = document.querySelector(`a[href="${url}"]`);
-    const originalTitle = targetLink ? (targetLink.innerText || targetLink.title || '未知標題') : '未知標題';
+    const originalTitle = targetLink 
+      ? (targetLink.innerText || targetLink.title || '未知標題') 
+      : '未知標題'; // Fallback to '未知標題' if not found
 
-    // 發送 n8n 請求（第一次：改寫標題）
-      fetch('https://assured-tadpole-merry.ngrok-free.app/webhook/c03a7cc8-3ac4-4f54-96c6-d9dc0d2924fb', {
+    // Send POST request to n8n Webhook for title rewriting
+    fetch('https://assured-tadpole-merry.ngrok-free.app/webhook/c03a7cc8-3ac4-4f54-96c6-d9dc0d2924fb', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url, action: 'rewriteTitle' })
@@ -41,59 +51,59 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return response.json();
       })
       .then(data => {
-        console.log('n8n response:', data);
+        console.log('n8n response:', data); // Debug log for response
         const rewrittenTitle = data.text;
 
-        // 從 chrome.storage.local 獲取現有記錄
+        // Retrieve existing records from chrome.storage.local
         chrome.storage.local.get(['testRecords'], (result) => {
           let testRecords = result.testRecords || [];
-          // 添加新記錄（僅包含標題）
+          // Add new record with original title, rewritten title, URL, and timestamp
           testRecords.push({
             originalTitle: originalTitle,
             rewrittenTitle: rewrittenTitle,
             url: url,
-            timestamp: new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) // 台灣時間
+            timestamp: new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) // Taiwan time
           });
 
-          // FIFO 策略：保留最近 100 筆
+          // Apply FIFO strategy: keep only the last 100 records
           if (testRecords.length > 100) {
             testRecords = testRecords.slice(-100);
           }
 
-          // 保存回 chrome.storage.local
+          // Save updated records back to chrome.storage.local
           chrome.storage.local.set({ testRecords: testRecords }, () => {
-            console.log('Record saved:', testRecords);
+            console.log('Record saved:', testRecords); // Debug log for saved data
           });
         });
 
-        // 顯示改寫結果（傳遞 url 以供後續摘要請求使用）
+        // Display rewritten title in popup, pass URL for summary request
         showPopup(rewrittenTitle, 'success', x, y, url);
       })
       .catch(error => {
-        console.error('n8n request failed:', error);
+        console.error('n8n request failed:', error); // Log any errors
         showPopup('錯誤：無法連接到 n8n', 'error', x, y);
       })
       .finally(() => {
-        rewritePending = false;
+        rewritePending = false; // Reset flag after request completes
       });
 
-    sendResponse({ status: 'rewrite started' });
+    sendResponse({ status: 'rewrite started' }); // Acknowledge message handling
   } else if (request.action === 'showPopup') {
-    // 處理顯示錯誤訊息
+    // Handle displaying error or custom messages
     const { text, type, x, y } = request;
     showPopup(text, type, x, y);
   }
 });
 
-// 調整後的浮動視窗（添加顯示摘要按鈕，移除摘要紀錄）
+// Function to create and manage the popup window
 function showPopup(message, type, x, y, url = null) {
-  console.log('Showing popup:', message, type, 'at', x, y); // 調試視窗
+  console.log('Showing popup:', message, type, 'at', x, y); // Debug log for popup creation
 
-  // 移除現有視窗
+  // Remove any existing popup to avoid duplication
   const existingPopup = document.getElementById('title-rewrite-popup');
   if (existingPopup) existingPopup.remove();
 
-  // 創建視窗
+  // Create new popup element
   const popup = document.createElement('div');
   popup.id = 'title-rewrite-popup';
   popup.style.position = 'fixed';
@@ -105,18 +115,18 @@ function showPopup(message, type, x, y, url = null) {
   popup.style.wordWrap = 'break-word';
   popup.style.fontFamily = 'system-ui, Arial, sans-serif';
   popup.style.background = 'rgba(47, 47, 47, 0.95)';
-  popup.style.color = '#ffffff'; // 確保文字在深色背景上可見
-  popup.style.cursor = 'default'; // 預設游標為正常
+  popup.style.color = '#ffffff'; // Ensure text visibility on dark background
+  popup.style.cursor = 'default'; // Default cursor style
 
-  // 內容（啟用文字選取並設置游標）
+  // Create content div for the message
   const contentDiv = document.createElement('div');
   contentDiv.style.marginRight = '25px';
-  contentDiv.style.userSelect = 'text'; // 允許選取文字
-  contentDiv.style.cursor = 'text'; // 明確設置文字游標
+  contentDiv.style.userSelect = 'text'; // Allow text selection
+  contentDiv.style.cursor = 'text'; // Set cursor to text
   contentDiv.textContent = message;
   popup.appendChild(contentDiv);
 
-  // 顯示摘要按鈕（僅在 success 時顯示）
+  // Add summary button if the request is successful and URL is provided
   if (type === 'success' && url) {
     const summaryButton = document.createElement('button');
     summaryButton.textContent = '顯示摘要';
@@ -129,18 +139,18 @@ function showPopup(message, type, x, y, url = null) {
     summaryButton.style.color = '#ffffff';
     summaryButton.style.outline = 'none';
     summaryButton.onmouseover = () => {
-      summaryButton.style.backgroundColor = '#8a8a8a'; // 滑鼠懸停時加深背景色
+      summaryButton.style.backgroundColor = '#8a8a8a'; // Darken on hover
     };
     summaryButton.onmouseout = () => {
-      summaryButton.style.backgroundColor = '#757575'; // 離開時恢復原色
+      summaryButton.style.backgroundColor = '#757575'; // Reset on mouse out
     };
     summaryButton.addEventListener('click', () => {
-      // 顯示載入中並移除按鈕
+      // Show loading state and remove button
       contentDiv.textContent = '正在生成摘要...';
       summaryButton.remove();
 
-      // 發送 n8n 請求（第二次：生成摘要）
-        fetch('https://assured-tadpole-merry.ngrok-free.app/webhook/c03a7cc8-3ac4-4f54-96c6-d9dc0d2924fb', {
+      // Send POST request to n8n for summary generation
+      fetch('https://assured-tadpole-merry.ngrok-free.app/webhook/c03a7cc8-3ac4-4f54-96c6-d9dc0d2924fb', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url, action: 'summary' })
@@ -152,47 +162,43 @@ function showPopup(message, type, x, y, url = null) {
           return response.json();
         })
         .then(data => {
-          console.log('n8n summary response:', data);
+          console.log('n8n summary response:', data); // Debug log
           const summary = data.text;
-
-          // 不再儲存摘要到 chrome.storage.local
-          // 僅更新顯示
-          contentDiv.textContent = summary;
+          contentDiv.textContent = summary; // Update with summary
         })
         .catch(error => {
-          console.error('n8n summary request failed:', error);
+          console.error('n8n summary request failed:', error); // Log errors
           contentDiv.textContent = '錯誤：無法生成摘要';
         });
     });
     popup.appendChild(summaryButton);
   }
 
-  // 關閉按鈕（縮小尺寸，hover 顯示灰色背景）
+  // Add close button with hover effect
   const closeButton = document.createElement('button');
   closeButton.textContent = '✕';
   closeButton.style.position = 'absolute';
   closeButton.style.top = '5px';
   closeButton.style.right = '5px';
-  closeButton.style.padding = '2px 6px'; // 縮小內距
+  closeButton.style.padding = '2px 6px';
   closeButton.style.border = 'none';
-  closeButton.style.borderRadius = '3px'; // 縮小圓角
+  closeButton.style.borderRadius = '3px';
   closeButton.style.cursor = 'pointer';
-  closeButton.style.backgroundColor = 'rgba(47, 47, 47, 0.95)'; // 與視窗背景相同
-  closeButton.style.color = '#ffffff'; // 文字白色
-  closeButton.style.outline = 'none'; // 移除焦點框
+  closeButton.style.backgroundColor = 'rgba(47, 47, 47, 0.95)';
+  closeButton.style.color = '#ffffff';
+  closeButton.style.outline = 'none';
   closeButton.onmouseover = () => {
-    closeButton.style.backgroundColor = '#757575'; // 滑鼠懸停時顯示灰色背景
+    closeButton.style.backgroundColor = '#757575'; // Show gray on hover
   };
   closeButton.onmouseout = () => {
-    closeButton.style.backgroundColor = 'rgba(47, 47, 47, 0.95)'; // 離開時恢復原色
+    closeButton.style.backgroundColor = 'rgba(47, 47, 47, 0.95)'; // Reset on mouse out
   };
   closeButton.addEventListener('click', () => {
-    popup.remove();
+    popup.remove(); // Remove popup on click
   });
-
   popup.appendChild(closeButton);
 
-  // 拖動功能（僅在非文字區域觸發）
+  // Implement drag functionality (only on non-text areas)
   let isDragging = false;
   let currentX;
   let currentY;
@@ -200,7 +206,7 @@ function showPopup(message, type, x, y, url = null) {
   let initialY;
 
   popup.addEventListener('mousedown', (e) => {
-    // 僅在點擊非文字區域時啟用拖動
+    // Enable dragging only if clicking on the popup border
     if (e.target === popup) {
       isDragging = true;
       initialX = e.clientX - currentX;
@@ -224,9 +230,9 @@ function showPopup(message, type, x, y, url = null) {
     popup.style.cursor = 'default';
   });
 
-  // 設置初始位置
+  // Set initial popup position with boundary checks
   const popupWidth = 300;
-  const popupHeight = type === 'success' ? 100 : 70; // 調整高度以適應摘要按鈕
+  const popupHeight = type === 'success' ? 100 : 70; // Adjust height for summary button
   let left = x + 10;
   let top = y + 10;
 
@@ -246,5 +252,5 @@ function showPopup(message, type, x, y, url = null) {
   popup.style.left = `${left}px`;
   popup.style.top = `${top}px`;
 
-  document.body.appendChild(popup);
+  document.body.appendChild(popup); // Add popup to the document
 }
