@@ -32,7 +32,7 @@ News Title Rewriter 是一個基於 Chrome 擴充功能的專題，通過與 n8n
    - 安裝 n8n，創建 Webhook 節點，記錄 URL（例如 `http://your-n8n-server/webhook/your-id`）。
    - 安裝 Cheerio。
 3. **修改 Webhook URL**
-   - 打開 `content.js`，將占位符 `https://your-ngrok-url-placeholder/webhook/2b30660b-f607-4ea0-b35e-f76695e40154` 替換為實際 n8n Webhook URL。
+   - 打開 `content.js`，將占位符 `https://your-n8n-server/webhook/your-webhook-id` 替換為實際 n8n Webhook URL。
    - 保存檔案。
 4. **設置 MySQL**
    - 安裝 MySQL。
