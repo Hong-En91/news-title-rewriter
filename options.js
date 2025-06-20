@@ -1,9 +1,15 @@
-// 載入記錄
+// File: options.js
+// Description: This script manages the options page for the Chrome extension,
+//              handling the display, deletion, and clearing of history records
+//              stored in chrome.storage.local.
+// Date: 2025-06-20
+
+// Load and display records from chrome.storage.local
 function loadRecords() {
   chrome.storage.local.get(['testRecords'], (result) => {
-    const testRecords = result.testRecords || [];
+    const testRecords = result.testRecords || []; // Default to empty array if undefined
     const tbody = document.querySelector('#recordsTable tbody');
-    tbody.innerHTML = ''; // 清空表格
+    tbody.innerHTML = ''; // Clear existing table content
 
     testRecords.forEach((record, index) => {
       const row = document.createElement('tr');
@@ -13,41 +19,41 @@ function loadRecords() {
         <td>${record.url}</td>
         <td>${record.timestamp}</td>
         <td><button class="delete-btn" data-index="${index}">刪除</button></td>
-      `;
+      `; // Create table row with record data and delete button
       tbody.appendChild(row);
     });
 
-    // 為刪除按鈕添加事件
+    // Add event listeners to delete buttons for each row
     document.querySelectorAll('.delete-btn').forEach(button => {
       button.addEventListener('click', () => {
-        const index = parseInt(button.getAttribute('data-index'));
-        deleteRecord(index);
+        const index = parseInt(button.getAttribute('data-index')); // Get index from button data
+        deleteRecord(index); // Trigger deletion of the selected record
       });
     });
   });
 }
 
-// 刪除單筆記錄
+// Delete a single record from chrome.storage.local
 function deleteRecord(index) {
   chrome.storage.local.get(['testRecords'], (result) => {
     let testRecords = result.testRecords || [];
-    testRecords.splice(index, 1); // 移除指定記錄
+    testRecords.splice(index, 1); // Remove the record at the specified index
     chrome.storage.local.set({ testRecords: testRecords }, () => {
-      console.log('Record deleted, remaining:', testRecords);
-      loadRecords(); // 刷新表格
+      console.log('Record deleted, remaining:', testRecords); // Log success and remaining records
+      loadRecords(); // Refresh the table to reflect changes
     });
   });
 }
 
-// 全部清除
+// Handle the clear all button click to remove all records
 document.getElementById('clearAll').addEventListener('click', () => {
-  if (confirm('確定要清除所有記錄嗎？')) {
+  if (confirm('確定要清除所有記錄嗎？')) { // Confirm with user before clearing
     chrome.storage.local.set({ testRecords: [] }, () => {
-      console.log('All records cleared');
-      loadRecords(); // 刷新表格
+      console.log('All records cleared'); // Log confirmation of clearing
+      loadRecords(); // Refresh the table to show empty state
     });
   }
 });
 
-// 頁面載入時顯示記錄
-document.addEventListener('DOMContentLoaded', loadRecords);
+// Load records when the DOM is fully loaded
+document.addEventListener('DOMContentLoaded', loadRecords); // Initialize table on page load
