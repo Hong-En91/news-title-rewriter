@@ -39,7 +39,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       : '未知標題'; // Fallback to '未知標題' if not found
 
     // Send POST request to n8n Webhook for title rewriting
-    fetch('https://assured-tadpole-merry.ngrok-free.app/webhook/c03a7cc8-3ac4-4f54-96c6-d9dc0d2924fb', {
+    fetch('https://your-n8n-server/webhook/your-webhook-id', {// Replace with your actual n8n Webhook URL
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url, action: 'rewriteTitle' })
@@ -150,7 +150,7 @@ function showPopup(message, type, x, y, url = null) {
       summaryButton.remove();
 
       // Send POST request to n8n for summary generation
-      fetch('https://assured-tadpole-merry.ngrok-free.app/webhook/c03a7cc8-3ac4-4f54-96c6-d9dc0d2924fb', {
+      fetch('https://your-n8n-server/webhook/your-webhook-id', {// Replace with your actual n8n Webhook URL
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url, action: 'summary' })
