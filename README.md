@@ -2,7 +2,7 @@
 Chrome 擴充功能 + n8n AI 改寫新聞標題
 
 ## 概述
-News Title Rewriter 是一個基於 Chrome 擴充功能的專題，通過與 n8n 工作流和 AI（Grok）整合，優化新聞標題的語氣並提供文章摘要。該專案旨在提升新聞閱讀體驗，減少聳動標題的影響，適用於多個新聞網站（如 udn.com 和 www.bbc.com）。
+News Title Rewriter 是一個基於 Chrome 擴充功能的專題，通過與 n8n 工作流和 AI（Grok）整合，優化新聞標題的語氣並提供文章摘要。該專案旨在提升新聞閱讀體驗，減少聳動標題的影響，適用於多個新聞網站（如 udn.com 和 edition.cnn.com）。
 
 ## 功能特色
 - 右鍵點擊新聞連結，顯示 AI 改進的標題。
@@ -16,7 +16,7 @@ News Title Rewriter 是一個基於 Chrome 擴充功能的專題，通過與 n8n
 - `background.js`: 管理右鍵選單和訊息傳遞。
 - `options.html`: 顯示歷史紀錄的 Options 頁面。
 - `options.js`: 實現記錄載入、刪除和清除功能。
-- `workflows/workflow-news-title-optimizer.json`: n8n 工作流檔案，負責標題改進和摘要生成。
+- `workflow-news-title-optimizer.json`: n8n 工作流檔案，負責標題改進和摘要生成。
 
 ## 設置說明
 ### 必要條件
@@ -26,20 +26,21 @@ News Title Rewriter 是一個基於 Chrome 擴充功能的專題，通過與 n8n
 
 ### 步驟
 1. **克隆倉庫**
-   - 執行 `git clone https://github.com/your-username/news-title-rewriter.git`。
-   - 需要先安裝 Git（參考 [Git 文檔](https://git-scm.com)），並將 URL 替換為你的實際倉庫地址。
+   - 執行 `git clone https://github.com/Hong-En91/news-title-rewriter.git`。
 2. **配置 n8n**
    - 安裝 n8n，創建 Webhook 節點，記錄 URL（例如 `http://your-n8n-server/webhook/your-id`）。
-   - 安裝 Cheerio。
+   - 安裝 Cheerio 套件（供 n8n 使用）。
 3. **修改 Webhook URL**
    - 打開 `content.js`，將占位符 `https://your-n8n-server/webhook/your-webhook-id` 替換為實際 n8n Webhook URL。
    - 保存檔案。
 4. **設置 MySQL**
    - 安裝 MySQL。
    - 創建資料庫，執行以下指令：
+     ```sql
      CREATE DATABASE IF NOT EXISTS n8n_data;
    - 在 n8n 中添加 MySQL 節點，配置連線（主機、用戶名、密碼、n8n_data`）。
    - 創建兩張表儲存記錄，表結構建議如下：
+     ```sql
      CREATE TABLE IF NOT EXISTS selectors (
        domain VARCHAR(255) PRIMARY KEY,       -- 儲存網域名稱作為唯一識別
        selector TEXT NOT NULL,                -- 儲存 LLM 回傳的 CSS selector 用於內容提取
