@@ -1,0 +1,1030 @@
+{
+  "name": "webhook AI main",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你將會收到一個網頁的 HTML 原始碼，請完成以下兩個任務：\n\n---\n\n**第一步：找出文章主要內容的 HTML 元素**\n\n請從提供的 HTML 中找出「主要文章內容所在的 HTML 元素」，並提供該元素的 CSS selector。\n\n請特別排除以下內容：\n- 網站導覽列、選單、頁尾\n- 廣告、推薦文章、熱門文章\n- 使用者留言區、社群分享按鈕\n\n請只回傳該主要文章容器的 class 或 id 名稱，例如：\n`.article-content__editor` 或 `#main-content`。\n\n不要包含如 `> div`、`:nth-child()` 等層級或順序選擇器。\n\n若無法明確判斷，請回覆：`unknown`\n\n---\n\n**第二步：根據主文章內容撰寫客觀新聞標題**\n\n請撰寫一則中立、客觀的新聞標題。規則如下：\n\n- 標題必須忠實反映文章的主要事實與內容；\n- 不誇張、不情緒化、不主觀；\n- 不使用任何形容詞或語助詞；\n- 僅回傳標題文字，不加引號、不加任何補充說明；\n- 使用清晰、自然的繁體中文表達。\n\n---\n\n請你按照以下格式回覆：\nselector: <請填入 CSS selector 或 unknown>\ntitle: <請填入標題>\n\n以下是 HTML 原始碼：\n{{ $json.cleanedHtml }}\n\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        160,
+        500
+      ],
+      "id": "e811826f-75f7-418d-ab16-82007cb21053",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "c03a7cc8-3ac4-4f54-96c6-d9dc0d2924fb",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1080,
+        240
+      ],
+      "id": "7d50d214-116e-4e2a-be7d-c7e43a2f31b2",
+      "name": "Webhook",
+      "webhookId": "c03a7cc8-3ac4-4f54-96c6-d9dc0d2924fb"
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        960,
+        220
+      ],
+      "id": "72dc6a88-fa58-4130-afb6-aaf54a5f100e",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=請閱讀下方文章內容並撰寫一段摘要，約100字左右：\n\n- 客觀中立地說明重點，不要加入評論；\n- 保持語句簡潔、自然。\n- 使用流暢、清晰的繁體中文表達。\n\n文章如下：{{ $json.article }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        500,
+        -40
+      ],
+      "id": "14ec940e-3893-48f2-b565-9da0f42f2eac",
+      "name": "Basic LLM Chain1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=你將會收到一篇文章內容。請根據這篇文章撰寫一個中立、客觀的新聞標題：\n\n-標題必須忠實反映文章的主要事實與內容；\n\n-避免任何誇張、情緒化、主觀或煽情的語氣；\n\n-不使用形容詞或語助詞來強化語氣；\n\n-僅輸出標題文字，不加引號、不加任何說明；\n\n-使用流暢、清晰的繁體中文表達。\n\n文章如下：{{ $json.article }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.6,
+      "position": [
+        520,
+        300
+      ],
+      "id": "4a9b52c0-b31f-44ec-86ef-b7c5d6957d83",
+      "name": "Basic LLM Chain2"
+    },
+    {
+      "parameters": {
+        "model": "grok-2-1212",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatXAiGrok",
+      "typeVersion": 1,
+      "position": [
+        400,
+        700
+      ],
+      "id": "b75e98c6-4eb1-4ac2-8914-446a904f792d",
+      "name": "xAI Grok Chat Model1",
+      "credentials": {
+        "xAiApi": {
+          "id": "RpbQoHI29e0mU1yU",
+          "name": "xAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawUrl = $('Webhook').first().json.body.url;\n\n// 用正規表達式從 URL 中解析 hostname\nconst domain = rawUrl.split('/')[2];  // https://example.com/xxx → 第3段是 hostname\n\nreturn [{\n  json: {\n    domain: domain\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -620,
+        340
+      ],
+      "id": "31a948aa-c2a6-4476-8c09-fef5af82fd14",
+      "name": "get_domain"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Webhook').item.json.body.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -100,
+        260
+      ],
+      "id": "1efa42f7-5bd3-45a2-9dd3-1c2f6992b396",
+      "name": "HTTP Request(URL)",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "=article",
+              "cssSelector": "={{ $('If_selector_exist').item.json.selector }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        60,
+        260
+      ],
+      "id": "e06d30e3-f60f-446d-8a4c-f8006e3d7876",
+      "name": "HTML(select article)",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// 通用文章清理器\nconst text = $json.article ?? '';\n\nconst cleaned = text\n  // 移除中括號中的 URL，如 [https://xxx]\n  .replace(/\\[https?:\\/\\/[^\\]\\s]+\\]/gi, '')\n  \n  // 移除常見來源/製作說明，例如「圖／XXX製作」、「圖／某某新聞網」等\n  .replace(/圖[／\\/].{0,15}(製作|提供|新聞網)?/g, '')\n  \n  // 移除 HTML tag（若殘留）\n  .replace(/<[^>]+>/g, '')\n  \n  // 移除多餘換行\n  .replace(/\\n{2,}/g, '\\n')\n  \n  // 移除開頭結尾多餘空白\n  .trim();\n\nreturn {\n  json: {\n    article: cleaned\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        260
+      ],
+      "id": "945dc5ea-e409-4220-b7e3-44868f115e39",
+      "name": "sort_article",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Webhook').item.json.body.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -160,
+        440
+      ],
+      "id": "01dc82b1-2231-4e8d-ab3e-9b42bd1bf360",
+      "name": "HTTP Request(URL)1",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "jsCode": "const cheerio = require('cheerio');\n\nconst html = $input.first().json.data;\nconst $ = cheerio.load(html);\n\nlet $content;\n\n// 1. 嘗試定位主要內容容器 (策略不變)\nconst contentSelectors = [\n  'article',\n  '[role=\"main\"]',\n  '#main-content',\n  '#main',\n  '#content',\n  '.main-content',\n  '.post-body',\n  '.article-body',\n];\n\nfor (const selector of contentSelectors) {\n  if ($(selector).length > 0) {\n    $content = $(selector).first();\n    break;\n  }\n}\n\nif (!$content) {\n  $content = $('body');\n}\n\n// 2. 在內容區塊內移除確定是雜訊的元素 (策略不變)\n$content.find('script, style, nav, footer, noscript, iframe, header, form, button, input, aside, link, meta, [class*=\"ads\"], [class*=\"banner\"], [class*=\"popup\"], [class*=\"cookie\"], [id*=\"ads\"], [id*=\"banner\"], [id*=\"popup\"], [id*=\"cookie\"]').remove();\n\n\n// 3. 【關鍵修改】只移除無關的屬性，完整保留 id 和 class\n//    【KEY CHANGE】Only remove irrelevant attributes, fully preserving id and class\n$content.find('*').each((i, el) => {\n  const $el = $(el);\n  $el.removeAttr('style')        // 移除行內樣式\n     .removeAttr('onclick')      // 移除點擊事件\n     .removeAttr('onmouseover')  // 移除滑鼠懸停事件\n     .removeAttr('target');       // 移除連結目標屬性 (如 _blank)\n  // 不再移除 id 和 class (removeAttr('id'), removeAttr('class'))\n});\n\n\n// 4. 取得清理後的 HTML\nconst cleanedHtml = $content.html();\n\nreturn [\n  {\n    json: {\n      cleanedHtml,\n      originalLength: html.length,\n      cleanedLength: cleanedHtml ? cleanedHtml.length : 0,\n      reduction: cleanedHtml ? `${(((html.length - cleanedHtml.length) / html.length) * 100).toFixed(2)}%` : '100.00%'\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        500
+      ],
+      "id": "d18810f0-63ce-455c-801f-49a2d7fa079d",
+      "name": "sort_HTML",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "jsCode": "const lines = $json.text.split('\\n');\nconst selector = lines.find(line => line.startsWith('selector:'))?.split(':')[1]?.trim();\nconst title = lines.find(line => line.startsWith('title:'))?.split(':')[1]?.trim();\n\nreturn {\n  json: {\n    selector,\n    title\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        500
+      ],
+      "id": "4de76bf1-70a1-4fea-bbb4-4ffed8261edf",
+      "name": "sort"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Webhook').item.json.body.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        60,
+        100
+      ],
+      "id": "88d2c3a9-dc76-4a3b-a412-adb0dcdf25b6",
+      "name": "HTTP Request(URL)2",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "=article",
+              "cssSelector": "={{ $('MySQL_selector1').item.json.selector }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        100
+      ],
+      "id": "b24fb5ec-3237-48b8-849a-bd3899344194",
+      "name": "HTML(select article)1",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// 通用文章清理器\nconst text = $json.article ?? '';\n\nconst cleaned = text\n  // 移除中括號中的 URL，如 [https://xxx]\n  .replace(/\\[https?:\\/\\/[^\\]\\s]+\\]/gi, '')\n  \n  // 移除常見來源/製作說明，例如「圖／XXX製作」、「圖／某某新聞網」等\n  .replace(/圖[／\\/].{0,15}(製作|提供|新聞網)?/g, '')\n  \n  // 移除 HTML tag（若殘留）\n  .replace(/<[^>]+>/g, '')\n  \n  // 移除多餘換行\n  .replace(/\\n{2,}/g, '\\n')\n  \n  // 移除開頭結尾多餘空白\n  .trim();\n\nreturn {\n  json: {\n    article: cleaned\n  }\n};\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        360,
+        60
+      ],
+      "id": "75bbca67-5521-418c-97b6-e43546813c9c",
+      "name": "sort_article1",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "12591d4d-99dc-40f4-a83c-7c1243795ff1",
+              "name": "id",
+              "value": "=1",
+              "type": "string"
+            },
+            {
+              "id": "9585f74f-6d1f-4b38-b301-0b0f6eda2cd5",
+              "name": "article",
+              "value": "={{ $json.article }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        520,
+        140
+      ],
+      "id": "e95d806d-5e20-4eae-a7f1-127084c9004e",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "table": {
+          "__rl": true,
+          "value": "article_single",
+          "mode": "list",
+          "cachedResultName": "article_single"
+        },
+        "columnToMatchOn": "id",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        680,
+        140
+      ],
+      "id": "239fdb5e-637c-4fe6-afae-71e387717f83",
+      "name": "MySQL_article",
+      "credentials": {
+        "mySql": {
+          "id": "dO7WiaAwWjS6tAqs",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "deleteTable",
+        "table": {
+          "__rl": true,
+          "value": "article_single",
+          "mode": "list",
+          "cachedResultName": "article_single"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -780,
+        340
+      ],
+      "id": "3865b986-7eef-4eef-886d-442ef8ddfc6c",
+      "name": "MySQL_article_delete",
+      "credentials": {
+        "mySql": {
+          "id": "dO7WiaAwWjS6tAqs",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a93d1a99-f5d4-42fc-be9c-2d54d740a2f9",
+              "leftValue": "={{ $json.selector }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -300,
+        340
+      ],
+      "id": "34881577-de39-407d-b26b-db39dda08b8b",
+      "name": "If_selector_exist"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a93d1a99-f5d4-42fc-be9c-2d54d740a2f9",
+              "leftValue": "={{ $('Webhook').item.json.body.action }}",
+              "rightValue": "summary",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -920,
+        240
+      ],
+      "id": "7a03aeee-4876-4947-8eee-b1c38ad22efe",
+      "name": "If_action_equal"
+    },
+    {
+      "parameters": {
+        "table": {
+          "__rl": true,
+          "value": "selectors",
+          "mode": "list",
+          "cachedResultName": "selectors"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        920,
+        600
+      ],
+      "id": "36e7c221-d1d2-4a86-a19a-c7b54929c9ba",
+      "name": "MySQL_selector_insert",
+      "credentials": {
+        "mySql": {
+          "id": "dO7WiaAwWjS6tAqs",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": {
+          "__rl": true,
+          "value": "selectors",
+          "mode": "list",
+          "cachedResultName": "selectors"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "domain",
+              "value": "={{ $json.domain }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -460,
+        340
+      ],
+      "id": "fce8a14c-4061-4575-b234-a3df9aef5973",
+      "name": "MySQL_selector",
+      "alwaysOutputData": true,
+      "credentials": {
+        "mySql": {
+          "id": "dO7WiaAwWjS6tAqs",
+          "name": "MySQL account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7596e38e-8220-43e7-a6ee-77d2affbf6a2",
+              "leftValue": "={{ $json.article }}",
+              "rightValue": "1",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -480,
+        140
+      ],
+      "id": "2721a634-99d7-424c-a597-11c579666fb6",
+      "name": "If_article_exist"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "12591d4d-99dc-40f4-a83c-7c1243795ff1",
+              "name": "domain",
+              "value": "={{ $('get_domain').item.json.domain }}",
+              "type": "string"
+            },
+            {
+              "id": "85d3797c-48f5-4d16-925e-343b75850945",
+              "name": "selector",
+              "value": "={{ $json.selector }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        740,
+        600
+      ],
+      "id": "8d6efe20-f061-4350-af35-9bd2ab2474e0",
+      "name": "set_selector"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "12591d4d-99dc-40f4-a83c-7c1243795ff1",
+              "name": "text",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        740,
+        440
+      ],
+      "id": "1173dc4c-00b3-4347-beb2-69e23118fd67",
+      "name": "set_text"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9585f74f-6d1f-4b38-b301-0b0f6eda2cd5",
+              "name": "article",
+              "value": "={{ $json.article }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -20,
+        -40
+      ],
+      "id": "81cc8f69-2875-43a1-ac70-a46ccde9f3e9",
+      "name": "set_article"
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": {
+          "__rl": true,
+          "value": "article_single",
+          "mode": "list",
+          "cachedResultName": "article_single"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "id",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -680,
+        140
+      ],
+      "id": "dfbbb1e5-5676-498a-a7d5-51671faf2bc5",
+      "name": "MySQL_read_article",
+      "alwaysOutputData": true,
+      "credentials": {
+        "mySql": {
+          "id": "dO7WiaAwWjS6tAqs",
+          "name": "MySQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "select",
+        "table": {
+          "__rl": true,
+          "value": "selectors",
+          "mode": "list",
+          "cachedResultName": "selectors"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "domain",
+              "value": "={{ $json.domain }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        -100,
+        100
+      ],
+      "id": "e33cc0f2-e045-4cae-9f5a-46153ecf52c0",
+      "name": "MySQL_selector1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "mySql": {
+          "id": "dO7WiaAwWjS6tAqs",
+          "name": "MySQL account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawUrl = $('Webhook').first().json.body.url;\n\n// 用正規表達式從 URL 中解析 hostname\nconst domain = rawUrl.split('/')[2];  // https://example.com/xxx → 第3段是 hostname\n\nreturn [{\n  json: {\n    domain: domain\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -280,
+        160
+      ],
+      "id": "54414889-b069-4e63-8ea5-a2a90dd12965",
+      "name": "get_domain1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "sort",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If_action_equal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain2": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "xAI Grok Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain2",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_domain": {
+      "main": [
+        [
+          {
+            "node": "MySQL_selector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request(URL)": {
+      "main": [
+        [
+          {
+            "node": "HTML(select article)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML(select article)": {
+      "main": [
+        [
+          {
+            "node": "sort_article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "sort_article": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request(URL)1": {
+      "main": [
+        [
+          {
+            "node": "sort_HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "sort_HTML": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "sort": {
+      "main": [
+        [
+          {
+            "node": "set_text",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "set_selector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request(URL)2": {
+      "main": [
+        [
+          {
+            "node": "HTML(select article)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML(select article)1": {
+      "main": [
+        [
+          {
+            "node": "sort_article1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "sort_article1": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "MySQL_article",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL_article_delete": {
+      "main": [
+        [
+          {
+            "node": "get_domain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If_selector_exist": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request(URL)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP Request(URL)1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If_action_equal": {
+      "main": [
+        [
+          {
+            "node": "MySQL_read_article",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MySQL_article_delete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL_selector_insert": {
+      "main": [
+        []
+      ]
+    },
+    "MySQL_selector": {
+      "main": [
+        [
+          {
+            "node": "If_selector_exist",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "If_article_exist": {
+      "main": [
+        [
+          {
+            "node": "set_article",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "get_domain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set_selector": {
+      "main": [
+        [
+          {
+            "node": "MySQL_selector_insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set_text": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "set_article": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL_read_article": {
+      "main": [
+        [
+          {
+            "node": "If_article_exist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL_selector1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request(URL)2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get_domain1": {
+      "main": [
+        [
+          {
+            "node": "MySQL_selector1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "77d948ed-6a7c-4582-97ae-e53175ddd52e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "bf30f90d31b16f376eee7e632cab0295ed3f6a2c29d0c129613dac512390d0bd"
+  },
+  "id": "veC9VGYQdNPhaVRb",
+  "tags": []
+}
